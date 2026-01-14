@@ -9,13 +9,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 import com.nimbusds.jose.JOSEException;
@@ -28,8 +28,8 @@ import com.nimbusds.jose.proc.SecurityContext;
 @EnableWebSecurity
 public class SecurityConfig {
 
- 
-        private RSAKey rsaKey;
+    private RSAKey rsaKey;
+
 
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
@@ -38,19 +38,17 @@ public class SecurityConfig {
         return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
     }
 
+
     @Bean
-    public InMemoryUserDetailsManager users() {
-        return new InMemoryUserDetailsManager(
-                User.withUsername("manish")
-                        .password("{noop}password")
-                        .authorities("read")
-                        .build());
+    public static PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
     }
 
 
     @Bean
     public AuthenticationManager authManager(UserDetailsService userDetailsService) {
         var authProvider = new DaoAuthenticationProvider();
+        authProvider.setPasswordEncoder(passwordEncoder());
         authProvider.setUserDetailsService(userDetailsService);
         return new ProviderManager(authProvider);
     }
@@ -65,26 +63,28 @@ public class SecurityConfig {
     JwtDecoder jwtDecoder() throws JOSEException {
          return NimbusJwtDecoder.withPublicKey(rsaKey.toRSAPublicKey()).build();
     }
-    
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-        .authorizeHttpRequests()
-        .requestMatchers("/token").permitAll()
-        .requestMatchers("/").permitAll()
-        .requestMatchers("/swagger-ui/**").permitAll()
-        .requestMatchers("/v3/api-docs/**").permitAll()
-        .requestMatchers("/test")
-        .authenticated()
-        .and()
-        .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http    
+                .headers().frameOptions().sameOrigin()
+                .and()
+                .authorizeHttpRequests()
+                .requestMatchers("/").permitAll()
+                .requestMatchers("/token").permitAll()
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
+                .requestMatchers("/test").authenticated()
+                .and()
+                .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                
+                // TODO: remove these after upgrading the DB from H2 infile DB
+              
+                http.csrf().disable();
+                http.headers().frameOptions().disable();
 
-        // TODO: remove these after upgrading the DB from H2 infile DB
-       http.csrf().disable();
-       http.headers().frameOptions().disable();
-
-return http.build();
+        return http.build();
     }
 
 }
