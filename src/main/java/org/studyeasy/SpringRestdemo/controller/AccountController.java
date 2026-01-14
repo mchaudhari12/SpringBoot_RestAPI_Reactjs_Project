@@ -16,7 +16,7 @@ public class AccountController {
 
     @GetMapping("/test")
     @Tag(name = "Test", description = "The Test API.")
-    @SecurityRequirement(name = "studyeasy-demo-api")
+    @SecurityRequirement(name = "manish-chaudhari")
     public String test(){
         return "Test Api";
     }
