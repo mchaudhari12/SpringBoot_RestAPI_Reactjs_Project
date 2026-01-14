@@ -11,7 +11,7 @@ public class AccountController {
 
     @GetMapping("/")
     public String demo(){
-        return "Hello World";
+        return "Welcome to Project";
     }
 
     @GetMapping("/test")
