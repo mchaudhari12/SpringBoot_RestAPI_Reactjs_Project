@@ -20,7 +20,10 @@ import org.studyeasy.SpringRestdemo.service.TokenService;
 import org.studyeasy.SpringRestdemo.util.constant.AccountError;
 import org.studyeasy.SpringRestdemo.util.constant.AccountSuccess;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
@@ -42,7 +45,7 @@ public class AuthController {
 
     @PostMapping("/token")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<TokenDTO> token(@RequestBody UserLoginDTO userLogin) throws AuthenticationException{
+    public ResponseEntity<TokenDTO> token(@Valid @RequestBody UserLoginDTO userLogin) throws AuthenticationException{
         try {
             Authentication authentication = authenticationManager
             .authenticate(new UsernamePasswordAuthenticationToken(userLogin.getEmail(), userLogin.getPassword()));
@@ -54,9 +57,12 @@ public class AuthController {
         }
     }  
      
-        @PostMapping("/user/add")
-        @ResponseStatus(HttpStatus.OK)
-        public ResponseEntity<String> addUser(@RequestBody AccountDTO accountDTO){
+        @PostMapping(value = "/user/add",consumes = "application/json",produces = "application/json")
+        @ResponseStatus(HttpStatus.CREATED)
+        @ApiResponse(responseCode = "400", description = "Please enter a valid email and password length between 6 to 20 character")
+        @ApiResponse(responseCode = "201",description = "Account Created")
+        @Operation(summary = "Add a New User")
+        public ResponseEntity<String> addUser(@Valid @RequestBody AccountDTO accountDTO){
         try {
             Account account = new Account();
         account.setEmail(accountDTO.getEmail());
