@@ -262,3 +262,4 @@
 2026-01-20 09:25:46,437 [INFO] org.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/] [http-nio-8081-exec-1] Initializing Spring DispatcherServlet 'dispatcherServlet'
 2026-01-20 09:25:46,439 [INFO] org.springframework.web.servlet.DispatcherServlet [http-nio-8081-exec-1] Initializing Servlet 'dispatcherServlet'
 2026-01-20 09:25:46,444 [INFO] org.springframework.web.servlet.DispatcherServlet [http-nio-8081-exec-1] Completed initialization in 3 ms
+2026-01-20 09:25:47,683 [INFO] org.springdoc.api.AbstractOpenApiResource [http-nio-8081-exec-9] Init duration for springdoc-openapi is: 792 ms
