@@ -34,6 +34,23 @@ public class AccountService implements UserDetailsService{
         return accountRepository.save(account);
     }
 
+    public List<Account> findAllUser(){
+        return accountRepository.findAll();
+    }
+
+    public Optional<Account> findByEmailAccount(String email){
+        return accountRepository.findByEmail(email);
+    }
+
+    public Optional<Account> findById(long id){
+        return accountRepository.findById(id);
+    }
+
+    public void DeleteById(long id){
+         accountRepository.deleteById(id);
+    }
+
+
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
        Optional<Account> optionaAccount =  accountRepository.findByEmail(email);
@@ -47,11 +64,5 @@ public class AccountService implements UserDetailsService{
        return new User(account.getEmail(), account.getPassword(), grantedAuthoriy);
     }
 
-    public List<Account> findAllUser(){
-        return accountRepository.findAll();
-    }
-
-    public Optional<Account> findByEmailAccount(String email){
-        return accountRepository.findByEmail(email);
-    }
+    
 }

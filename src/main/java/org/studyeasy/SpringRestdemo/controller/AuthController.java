@@ -10,8 +10,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -19,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.studyeasy.SpringRestdemo.model.Account;
 import org.studyeasy.SpringRestdemo.payload.auth.AccountDTO;
 import org.studyeasy.SpringRestdemo.payload.auth.AccountViewDTO;
+import org.studyeasy.SpringRestdemo.payload.auth.AuthoritiesDTO;
+import org.studyeasy.SpringRestdemo.payload.auth.PasswordDTO;
 import org.studyeasy.SpringRestdemo.payload.auth.ProfileDTO;
 import org.studyeasy.SpringRestdemo.payload.auth.TokenDTO;
 import org.studyeasy.SpringRestdemo.payload.auth.UserLoginDTO;
@@ -35,7 +40,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 @Tag(name = "Auth Controller", description = "Controller for Account management")
 @Slf4j
 public class AuthController {
@@ -65,7 +70,7 @@ public class AuthController {
         }
     }  
      
-        @PostMapping(value = "/user/add",produces = "application/json")
+        @PostMapping(value = "/users/add",produces = "application/json")
         @ResponseStatus(HttpStatus.CREATED)
         @ApiResponse(responseCode = "400", description = "Please enter a valid email and password length between 6 to 20 character")
         @ApiResponse(responseCode = "201",description = "Account Created")
@@ -101,6 +106,26 @@ public class AuthController {
             return accounts;
         }
 
+        @PutMapping(value = "/user/{user_id}/update-auth",produces = "application/json",consumes = "application/json")
+        @ApiResponse(responseCode = "200",description = "Update the Authorities")
+        @ApiResponse(responseCode = "401", description = "Token Missing")
+        @ApiResponse(responseCode = "403", description = "Token Error")
+        @ApiResponse(responseCode = "400", description = "Bad Request Please enter correct ID")
+        @Operation(summary = "Update Authorities")
+        @SecurityRequirement(name = "manish-chaudhari")
+        public ResponseEntity<AccountViewDTO> Update_auth(@Valid @RequestBody AuthoritiesDTO authoritiesDTO,@PathVariable long user_id){
+           Optional<Account> optionalAccount = accountService.findById(user_id);
+           if(optionalAccount.isPresent()){
+            Account account = optionalAccount.get();
+            account.setAuthorities(authoritiesDTO.getAuthorities());
+            accountService.save(account);
+            AccountViewDTO accountViewDTO = new AccountViewDTO(account.getId(),account.getEmail(),account.getAuthorities());
+            return ResponseEntity.ok(accountViewDTO);
+           }
+           return new ResponseEntity<AccountViewDTO>(new AccountViewDTO(),HttpStatus.BAD_REQUEST);
+        }
+        
+
         @GetMapping(value = "/profile",produces = "application/json")
         @ApiResponse(responseCode = "200",description = "Account User List")
         @ApiResponse(responseCode = "401", description = "Token Missing")
@@ -110,12 +135,44 @@ public class AuthController {
         public ProfileDTO profile(Authentication authentication){
            String email = authentication.getName();
            Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
-           if(optionalAccount.isPresent()){
             Account account = optionalAccount.get();
             ProfileDTO profileDTO = new ProfileDTO(account.getId(),account.getEmail(),account.getAuthorities());
             return profileDTO;
            }
-           return null;
+
+
+        @PutMapping(value = "/profile/update-password",produces = "application/json",consumes = "application/json")
+        @ApiResponse(responseCode = "200",description = "Update the Password ")
+        @ApiResponse(responseCode = "401", description = "Token Missing")
+        @ApiResponse(responseCode = "403", description = "Token Error")
+        @Operation(summary = "Update Profile")
+        @SecurityRequirement(name = "manish-chaudhari")
+        public AccountViewDTO UpdateProfile(@Valid @RequestBody PasswordDTO passwordDTO,Authentication authentication){
+           String email = authentication.getName();
+           Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
+            Account account = optionalAccount.get();
+            account.setPassword(passwordDTO.getPassword());
+            accountService.save(account);
+            AccountViewDTO accountViewDTO = new AccountViewDTO(account.getId(),account.getEmail(),account.getAuthorities());
+            return accountViewDTO;
         }
+
+
+        @DeleteMapping(value = "/profile/delete")
+        @ApiResponse(responseCode = "200",description = "Delete Profile")
+        @ApiResponse(responseCode = "401", description = "Token Missing")
+        @ApiResponse(responseCode = "403", description = "Token Error")
+        @Operation(summary = "Delete Profile")
+        @SecurityRequirement(name = "manish-chaudhari")
+        public ResponseEntity<String> delete_profile(Authentication authentication){
+           String email = authentication.getName();
+           Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
+           if(optionalAccount.isPresent()){
+                accountService.DeleteById(optionalAccount.get().getId());
+                return ResponseEntity.ok("User Delete");
+            }
+            return new ResponseEntity<String>("Bad Request",HttpStatus.BAD_REQUEST);
+        }
+
         
 }
