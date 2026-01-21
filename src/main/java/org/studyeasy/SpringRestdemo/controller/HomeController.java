@@ -14,13 +14,6 @@ public class HomeController {
         return "Welcome to Project";
     }
 
-    @GetMapping("/test")
-    @Tag(name = "Test", description = "The Test API.")
-    @SecurityRequirement(name = "manish-chaudhari")
-    public String test(){
-        return "Test Api";
-    }
-
     
     
 }

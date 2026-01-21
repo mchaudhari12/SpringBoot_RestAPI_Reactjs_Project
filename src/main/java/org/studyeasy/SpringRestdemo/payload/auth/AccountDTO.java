@@ -12,10 +12,10 @@ import lombok.Setter;
 public class AccountDTO {
     
     @Email
-    @Schema(description = "Email Address", example = "manishdchaudhari@gmail.com",requiredMode = RequiredMode.REQUIRED)
+    @Schema(description = "Email Address", example = "manish@gmail.com",requiredMode = RequiredMode.REQUIRED)
     private String email;
 
     @Size(min = 6, max =20)
-    @Schema(description = "Password",example = "password",requiredMode = RequiredMode.REQUIRED,minLength = 6 , maxLength = 20)
+    @Schema(description = "Password",example = "manish",requiredMode = RequiredMode.REQUIRED,minLength = 6 , maxLength = 20)
     private String password;
 }

@@ -5,6 +5,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.studyeasy.SpringRestdemo.model.Account;
 import org.studyeasy.SpringRestdemo.service.AccountService;
+import org.studyeasy.SpringRestdemo.util.constant.Authority;
 
 @Component
 public class seedData implements CommandLineRunner{
@@ -20,12 +21,12 @@ public class seedData implements CommandLineRunner{
 
         account01.setEmail("manish@gmail.com");
         account01.setPassword("manish");
-        account01.setRole("ROLE_USER");
+        account01.setAuthorities(Authority.USER.toString());
         accountService.save(account01);
 
         account02.setEmail("Jitendra@gmail.com");
         account02.setPassword("manish");
-        account02.setRole("ROLE_ADMIN");
+        account02.setAuthorities(Authority.ADMIN.toString() + " "+Authority.USER.toString());
         accountService.save(account02);
 
     }

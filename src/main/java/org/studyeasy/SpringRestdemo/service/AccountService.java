@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.studyeasy.SpringRestdemo.model.Account;
 import org.studyeasy.SpringRestdemo.repository.AccountRepository;
+import org.studyeasy.SpringRestdemo.util.constant.Authority;
 
 @Service
 public class AccountService implements UserDetailsService{
@@ -27,6 +28,9 @@ public class AccountService implements UserDetailsService{
 
     public Account save(Account account) {
         account.setPassword(passwordEncoder.encode(account.getPassword()));
+        if(account.getAuthorities() == null){
+            account.setAuthorities(Authority.USER.toString());
+        }
         return accountRepository.save(account);
     }
 
@@ -39,8 +43,15 @@ public class AccountService implements UserDetailsService{
        Account account = optionaAccount.get();
 
        List<GrantedAuthority> grantedAuthoriy = new ArrayList<>();
-       grantedAuthoriy.add(new SimpleGrantedAuthority(account.getRole()));
+       grantedAuthoriy.add(new SimpleGrantedAuthority(account.getAuthorities()));
        return new User(account.getEmail(), account.getPassword(), grantedAuthoriy);
     }
 
+    public List<Account> findAllUser(){
+        return accountRepository.findAll();
+    }
+
+    public Optional<Account> findByEmailAccount(String email){
+        return accountRepository.findByEmail(email);
+    }
 }
