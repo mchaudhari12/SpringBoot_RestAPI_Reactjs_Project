@@ -597,3 +597,4 @@ java.lang.NullPointerException: Cannot invoke "org.springframework.security.core
 2026-01-22 13:30:10,600 [INFO] org.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/] [http-nio-8081-exec-1] Initializing Spring DispatcherServlet 'dispatcherServlet'
 2026-01-22 13:30:10,602 [INFO] org.springframework.web.servlet.DispatcherServlet [http-nio-8081-exec-1] Initializing Servlet 'dispatcherServlet'
 2026-01-22 13:30:10,608 [INFO] org.springframework.web.servlet.DispatcherServlet [http-nio-8081-exec-1] Completed initialization in 1 ms
+2026-01-22 13:30:12,620 [INFO] org.springdoc.api.AbstractOpenApiResource [http-nio-8081-exec-9] Init duration for springdoc-openapi is: 1260 ms
