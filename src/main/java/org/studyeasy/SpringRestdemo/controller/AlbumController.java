@@ -23,9 +23,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -37,6 +39,9 @@ import org.studyeasy.SpringRestdemo.model.Album;
 import org.studyeasy.SpringRestdemo.model.Photo;
 import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.AlbumPayloadDTO;
 import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.AlbumViewDTO;
+import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.PhotoDTO;
+import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.PhotoPayloadDTO;
+import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.PhotoViewDTO;
 import org.studyeasy.SpringRestdemo.service.AccountService;
 import org.studyeasy.SpringRestdemo.service.AlbumService;
 import org.studyeasy.SpringRestdemo.service.PhotoService;
@@ -86,7 +91,7 @@ public class AlbumController {
             Account account = optionalAccount.get();
             album.setAccount(account);
             album = albumService.save(album);
-            AlbumViewDTO albumViewDTO = new AlbumViewDTO(album.getId(),album.getName(),album.getDescription());
+            AlbumViewDTO albumViewDTO = new AlbumViewDTO(album.getId(),album.getName(),album.getDescription(),null);
             return ResponseEntity.ok(albumViewDTO);
         }
         catch(Exception e){
@@ -107,10 +112,88 @@ public class AlbumController {
         Account account = optionalAccount.get();
         List<AlbumViewDTO> albums = new ArrayList<>();
         for(Album album : albumService.findByAccountId(account.getId())){
-            albums.add(new AlbumViewDTO(album.getId(), album.getName(), album.getDescription()));
+            List<PhotoDTO> photos = new ArrayList<>();
+            for(Photo photo : photoService.findByAlbumId(album.getId())){
+                String link = "/albums"+album.getId()+"/photos"+photo.getId()+"/download-photo";
+                    photos.add(new PhotoDTO(photo.getId(),photo.getName(),photo.getDesciption(),photo.getFileName(),link));
+            }
+            albums.add(new AlbumViewDTO(album.getId(), album.getName(), album.getDescription(),photos));
         }
         return albums;
     }
+
+    @GetMapping(value = "/album/{album_id}", produces = "Application/json")
+    @ApiResponse(responseCode = "200", description = "List Of Album")
+    @ApiResponse(responseCode = "401", description = "Token Missing")
+    @ApiResponse(responseCode = "403", description = "Token Error")
+    @Operation(summary = "List Album by Album id")
+    @SecurityRequirement(name = "manish-chaudhari")
+    public ResponseEntity<AlbumViewDTO> albums_bu_id(@PathVariable long album_id,Authentication authentication){
+        String email = authentication.getName();
+        Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
+        Account account = optionalAccount.get();
+        Optional<Album> optionalAlbum = albumService.findByID(album_id);
+        Album album;
+        if (optionalAlbum.isPresent()) {
+            album = optionalAlbum.get();
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+        if (account.getId() != album.getAccount().getId()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        List<PhotoDTO> photos = new ArrayList<>();
+        for (Photo photo : photoService.findByAlbumId(album.getId())) {
+            String link = "/albums/"+album.getId()+"/photos/"+photo.getId()+"/download-photo";
+            photos.add(new PhotoDTO(photo.getId(), photo.getName(), photo.getDesciption(), photo.getFileName(), link));
+        }
+
+        AlbumViewDTO albumViewDTO = new AlbumViewDTO(album.getId(), album.getName(), album.getDescription(), photos);
+
+        return ResponseEntity.ok(albumViewDTO);
+    }
+   
+    @PutMapping(value = "/album/{album_id}/update",consumes = {"application/json"},produces={"application/json"})
+    @ResponseStatus(HttpStatus.CREATED)
+    @ApiResponse(responseCode = "400", description = "Please check the payload or token")
+    @ApiResponse(responseCode = "204", description = "Album Update")
+    @Operation(summary = "Update in album")
+    @SecurityRequirement(name = "manish-chaudhari")
+    public ResponseEntity<AlbumViewDTO> update_Album(@Valid @RequestBody AlbumPayloadDTO albumPayloadDTO,@PathVariable
+            long album_id, Authentication authentication ){
+                try {
+                    String email = authentication.getName();
+                    Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
+                    Account account = optionalAccount.get();
+
+                    Optional<Album> optionalAlbum = albumService.findByID(album_id);
+                    Album album;
+                    if(optionalAlbum.isPresent()){
+                        album = optionalAlbum.get();
+                        if(account.getId()!= album.getAccount().getId()){
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+                        }
+                    }else{
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+                    }
+
+                    album.setName(albumPayloadDTO.getName());
+                    album.setDescription(albumPayloadDTO.getDescription());
+                    albumService.save(album);
+                    List<PhotoDTO> photos = new ArrayList<>();
+                    for(Photo photo: photoService.findByAlbumId(album.getId())){
+                        String link = "/albums/"+album.getId()+"/photos/"+photo.getId()+"/download-photo";
+                        photos.add(new PhotoDTO(photo.getId(), photo.getName(), photo.getDesciption(), 
+                        photo.getFileName(), link));
+                    }
+                    AlbumViewDTO albumViewDTO = new AlbumViewDTO(album.getId(), album.getName(), album.getDescription(), photos);
+                    return ResponseEntity.ok(albumViewDTO);
+                } catch (Exception e) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+                }
+    }
+
 
     @PostMapping(value = "/album/{album_id}/upload-photos",consumes = {"multipart/form-data"})
     @ApiResponse(responseCode = "400", description = "Please check the payload or token")
@@ -181,9 +264,134 @@ public class AlbumController {
         return ResponseEntity.ok(response);
     }
 
-
-    @GetMapping("albums/{album_id}/photos/{photo_id}/download-photo")
+  
+    @PutMapping(value = "/album/{album_id}/photo/{photo_id}/update",consumes = {"application/json"},produces={"application/json"})
+    @ResponseStatus(HttpStatus.CREATED)
+    @ApiResponse(responseCode = "400", description = "Please add valid name a description")
+    @ApiResponse(responseCode = "204", description = "Photo Update")
+    @Operation(summary = "Update in Photo")
     @SecurityRequirement(name = "manish-chaudhari")
+    public ResponseEntity<PhotoViewDTO> update_photo(@Valid @RequestBody PhotoPayloadDTO photoPayloadDTO,
+                        @PathVariable long album_id,@PathVariable long photo_id,Authentication authentication){
+                
+                try {
+                    String email = authentication.getName();
+                    Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
+                    Account account = optionalAccount.get();
+
+                    Optional<Album> optionalAlbum = albumService.findByID(album_id);
+                    Album album;
+                    if(optionalAlbum.isPresent()){
+                        album = optionalAlbum.get();
+                        if(account.getId() != album.getAccount().getId()){
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+                        }
+                    }else{
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+                    }
+
+                    Optional<Photo> optionalPhoto = photoService.findById(photo_id);
+                    if(optionalPhoto.isPresent()){
+                        Photo photo =optionalPhoto.get();
+                        if(photo.getAlbum().getId() != album_id){
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+                        }
+                        photo.setName(photoPayloadDTO.getName());
+                        photo.setDesciption(photoPayloadDTO.getDescription());
+                        photoService.save(photo);
+                        PhotoViewDTO photoViewDTO = new PhotoViewDTO(photo.getId(),photoPayloadDTO.getName(), photoPayloadDTO.getDescription());
+                        return ResponseEntity.ok(photoViewDTO);
+                    }else{
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+                    }
+                } catch (Exception e) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+                }        
+    }
+
+    @DeleteMapping(value = "albums/{album_id}/photos/{photo_id}/delete")
+    @ResponseStatus(HttpStatus.CREATED)
+    @ApiResponse(responseCode = "202", description = "Photo delete")
+    @Operation(summary = "delete a photo")
+    @SecurityRequirement(name = "manish-chaudhari")
+    public ResponseEntity<String> delete_photo(@PathVariable long album_id,  
+    @PathVariable long photo_id,Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
+            Account account = optionalAccount.get();
+
+            Optional<Album> optionalAlbum = albumService.findByID(album_id);
+            Album album;
+            if(optionalAlbum.isPresent()){
+                album = optionalAlbum.get();
+                if (account.getId() != album.getAccount().getId()) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+                }
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            }
+
+            Optional<Photo> optionalPhoto = photoService.findById(photo_id);
+            if(optionalPhoto.isPresent()){
+                Photo photo = optionalPhoto.get();
+                if (photo.getAlbum().getId() != album_id) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+                }
+
+                AppUtil.delete_photo_from_path(photo.getFileName(), PHOTOS_FOLDER_NAME, album_id);
+                AppUtil.delete_photo_from_path(photo.getFileName(), THUMBNAIL_FOLDER_NAME, album_id);
+                photoService.delete(photo);
+                
+                return ResponseEntity.status(HttpStatus.ACCEPTED).body(null);
+            }else{
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            }
+   
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
+    @DeleteMapping(value = "albums/{album_id}/delete")
+    @ResponseStatus(HttpStatus.CREATED)
+    @ApiResponse(responseCode = "202", description = "Album deleted")
+    @Operation(summary = "delete a photo")
+    @SecurityRequirement(name = "manish-chaudhari")
+    public ResponseEntity<String> delete_album(@PathVariable long album_id,Authentication authentication) {
+        try {
+
+            String email = authentication.getName();
+            Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
+            Account account = optionalAccount.get();
+    
+            Optional<Album> optionaAlbum = albumService.findByID(album_id);
+            Album album;
+            if (optionaAlbum.isPresent()) {
+                album = optionaAlbum.get();
+                if (account.getId() != album.getAccount().getId()) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+                }
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            }
+           
+            for (Photo photo : photoService.findByAlbumId(album.getId())) {
+                AppUtil.delete_photo_from_path(photo.getFileName(), PHOTOS_FOLDER_NAME, album_id);
+                AppUtil.delete_photo_from_path(photo.getFileName(), THUMBNAIL_FOLDER_NAME, album_id);
+                photoService.delete(photo);
+            }
+            albumService.deleteAlbum(album);
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(null);
+           
+
+        } catch (Exception e) {
+            
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
     public ResponseEntity<?> downloadPhoto(@PathVariable("album_id") long album_id,
             @PathVariable("photo_id") long photo_id, Authentication authentication) {
 
