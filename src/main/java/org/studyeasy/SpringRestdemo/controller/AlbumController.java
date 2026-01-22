@@ -1,15 +1,30 @@
 package org.studyeasy.SpringRestdemo.controller;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
+import javax.imageio.ImageIO;
+
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,10 +34,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.studyeasy.SpringRestdemo.model.Account;
 import org.studyeasy.SpringRestdemo.model.Album;
+import org.studyeasy.SpringRestdemo.model.Photo;
 import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.AlbumPayloadDTO;
 import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.AlbumViewDTO;
 import org.studyeasy.SpringRestdemo.service.AccountService;
 import org.studyeasy.SpringRestdemo.service.AlbumService;
+import org.studyeasy.SpringRestdemo.service.PhotoService;
+import org.studyeasy.SpringRestdemo.util.AppUtils.AppUtil;
 import org.studyeasy.SpringRestdemo.util.constant.AlbumUtil.AlbumError;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,10 +51,14 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("api/v1/album")
+@RequestMapping("/api/v1")
 @Tag(name = "Album Controller",description = "Controller fr album and photo management")
 @Slf4j
 public class AlbumController {
+
+    static final String PHOTOS_FOLDER_NAME = "photos";
+    static final String THUMBNAIL_FOLDER_NAME = "thumbnails";
+    static final int THUMBNAIL_WIDTH = 300;
     
      @Autowired
     private AccountService accountService;
@@ -44,7 +66,10 @@ public class AlbumController {
     @Autowired
     private AlbumService albumService;
 
-    @PostMapping(value = "/add",produces ="application/json", consumes = "application/json")
+    @Autowired
+    private PhotoService photoService;
+
+    @PostMapping(value = "/album/add",produces ="application/json", consumes = "application/json")
     @ResponseStatus(HttpStatus.CREATED)
     @ApiResponse(responseCode = "400", description = "Please add valid name a description")
     @ApiResponse(responseCode = "201", description = "Account added")
@@ -70,7 +95,7 @@ public class AlbumController {
         }
     }
 
-    @GetMapping(value = "/", produces = "Application/json")
+    @GetMapping(value = "/album", produces = "Application/json")
     @ApiResponse(responseCode = "200", description = "List Of Album")
     @ApiResponse(responseCode = "401", description = "Token Missing")
     @ApiResponse(responseCode = "403", description = "Token Error")
@@ -87,14 +112,133 @@ public class AlbumController {
         return albums;
     }
 
-    @PostMapping(value = "/photos",consumes = {"multipart/form-data"})
+    @PostMapping(value = "/album/{album_id}/upload-photos",consumes = {"multipart/form-data"})
+    @ApiResponse(responseCode = "400", description = "Please check the payload or token")
     @Operation(summary = "Uplaod Photo into album")
     @SecurityRequirement(name = "manish-chaudhari")
-    public List<String> photos(@RequestPart(required = true) MultipartFile[] files){
-        List<String> fileName = new ArrayList<>();
-        Arrays.asList(files).stream().forEach(file -> {fileName.add(file.getOriginalFilename());            
-        });
-        return fileName;
+    public ResponseEntity<List<HashMap<String, List<String>>>> photos(@RequestPart(required = true) MultipartFile[] files,@PathVariable long album_id, Authentication authentication){
+        String email = authentication.getName();
+        Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
+        Account account = optionalAccount.get();
+        Optional<Album> optionalAlbum = albumService.findByID(album_id);
+        Album album;
+        if(optionalAlbum.isPresent()){
+            album = optionalAlbum.get();
+            if(account.getId() != album.getAccount().getId()){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            }
+        }else{
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
 
+        List<String> fileNamewithSuccess = new ArrayList<>();
+        List<String> fileNamewithError = new ArrayList<>();
+
+        Arrays.asList(files).stream().forEach(file -> {
+            String contentType = file.getContentType();
+            if(contentType.equals("image/png")
+            || contentType.equals("image/jpg")
+            || contentType.equals("image/jpeg")){
+                fileNamewithSuccess.add(file.getOriginalFilename());
+
+                int length = 10;
+                boolean useLetter = true;
+                boolean useNumber = true;
+                
+                try {
+                    String fileName = file.getOriginalFilename();
+                    String generatedString = RandomStringUtils.random(length,useLetter,useNumber);
+                    String final_photo_name = generatedString + fileName;
+                    String alsolute_fileLocation = AppUtil.get_photo_upload_path(final_photo_name,PHOTOS_FOLDER_NAME, album_id);
+                    Path path = Paths.get(alsolute_fileLocation);
+                    Files.copy(file.getInputStream(),path,StandardCopyOption.REPLACE_EXISTING);
+                    Photo photo = new Photo();
+                    photo.setName(fileName);
+                    photo.setFileName(final_photo_name);
+                    photo.setOriginalFileName(fileName);
+                    photo.setAlbum(album);
+                    photoService.save(photo);
+
+                    BufferedImage thumbImg = AppUtil.getThumbnail(file, THUMBNAIL_WIDTH);
+                    File thumbnail_locations = new File(AppUtil.get_photo_upload_path(final_photo_name,THUMBNAIL_FOLDER_NAME, album_id));   
+                    ImageIO.write(thumbImg, file.getContentType().split("/")[1],thumbnail_locations);
+                } catch (Exception e) {
+                    log.debug(AlbumError.PHOTO_UPLOAD_ERROR.toString() + ": "+ e.getMessage());
+                    fileNamewithError.add(file.getOriginalFilename());
+                }        
+            }else{
+                fileNamewithError.add(file.getOriginalFilename());
+            }
+        }); 
+
+       HashMap<String, List<String>> result = new HashMap<>();
+        result.put("SUCCESS", fileNamewithSuccess);
+        result.put("ERRORS", fileNamewithError);
+        
+        List<HashMap<String, List<String>>> response = new ArrayList<>();
+        response.add(result);
+        
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("albums/{album_id}/photos/{photo_id}/download-photo")
+    @SecurityRequirement(name = "manish-chaudhari")
+    public ResponseEntity<?> downloadPhoto(@PathVariable("album_id") long album_id,
+            @PathVariable("photo_id") long photo_id, Authentication authentication) {
+
+        return downloadFile(album_id, photo_id, PHOTOS_FOLDER_NAME, authentication);
+    }
+
+    @GetMapping("albums/{album_id}/photos/{photo_id}/download-thumbnail")
+    @SecurityRequirement(name = "manish-chaudhari")
+    public ResponseEntity<?> downloadThumbnail(@PathVariable("album_id") long album_id,
+            @PathVariable("photo_id") long photo_id, Authentication authentication) {
+
+        return downloadFile(album_id, photo_id, THUMBNAIL_FOLDER_NAME, authentication);
+    }
+
+    public ResponseEntity<?> downloadFile(long album_id, long photo_id, String folder_name,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
+        Account account = optionalAccount.get();
+
+        Optional<Album> optionaAlbum = albumService.findByID(album_id);
+        Album album;
+        if (optionaAlbum.isPresent()) {
+            album = optionaAlbum.get();
+            if (account.getId() != album.getAccount().getId()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+            }
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
+        Optional<Photo> optionalPhoto = photoService.findById(photo_id);
+        if (optionalPhoto.isPresent()) {
+            Photo photo = optionalPhoto.get();
+            Resource resource = null;
+            try {
+                resource = AppUtil.getFileAsResource(album_id, folder_name, photo.getFileName());
+            } catch (IOException e) {
+                return ResponseEntity.internalServerError().build();
+            }
+
+            if (resource == null) {
+                return new ResponseEntity<>("File not found", HttpStatus.NOT_FOUND);
+            }
+
+            String contentType = "application/octet-stream";
+            String headerValue = "attachment; filename=\"" + photo.getOriginalFileName() + "\"";
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, headerValue)
+                    .body(resource);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 }
