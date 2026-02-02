@@ -1,4 +1,4 @@
-package org.studyeasy.SpringRestdemo.payload.auth;
+package org.studyeasy.SpringRestdemo.payload.AuthPayload;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
@@ -9,7 +9,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class AccountDTO {
+public class UserLoginDTO {
     
     @Email
     @Schema(description = "Email Address", example = "manish@gmail.com",requiredMode = RequiredMode.REQUIRED)

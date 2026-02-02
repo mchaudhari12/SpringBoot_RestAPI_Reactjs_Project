@@ -1,4 +1,4 @@
-package org.studyeasy.SpringRestdemo.payload.auth;
+package org.studyeasy.SpringRestdemo.payload.AuthPayload;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;

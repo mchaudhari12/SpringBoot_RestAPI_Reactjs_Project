@@ -1,4 +1,4 @@
-package org.studyeasy.SpringRestdemo.payload.auth;
+package org.studyeasy.SpringRestdemo.payload.AuthPayload;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

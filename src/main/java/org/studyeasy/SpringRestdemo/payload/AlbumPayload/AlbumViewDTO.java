@@ -1,4 +1,6 @@
-package org.studyeasy.SpringRestdemo.payload.auth.albumPayload;
+package org.studyeasy.SpringRestdemo.payload.AlbumPayload;
+
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
@@ -11,10 +13,12 @@ import lombok.ToString;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @ToString
-public class AlbumPayloadDTO {
+public class AlbumViewDTO {
+    
+    private long id;
 
     @NotBlank
     @Schema(description="Album name",example = "Travel" ,requiredMode = RequiredMode.REQUIRED)
@@ -24,4 +28,5 @@ public class AlbumPayloadDTO {
     @Schema(description = "Description of the album", example = "Description", requiredMode = RequiredMode.REQUIRED)
     private String description;
 
+    private List<PhotoDTO> photos;
 }

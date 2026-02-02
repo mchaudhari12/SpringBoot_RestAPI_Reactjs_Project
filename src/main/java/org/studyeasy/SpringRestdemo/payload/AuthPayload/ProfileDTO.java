@@ -1,19 +1,18 @@
-package org.studyeasy.SpringRestdemo.payload.auth;
+package org.studyeasy.SpringRestdemo.payload.AuthPayload;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Setter
 @Getter
 @AllArgsConstructor
-@NoArgsConstructor
-public class AccountViewDTO {
+public class ProfileDTO {
     
     private long id;
 
     private String email;
 
     private String authorities;
+
 }

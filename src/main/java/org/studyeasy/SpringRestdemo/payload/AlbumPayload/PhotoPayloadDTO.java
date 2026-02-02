@@ -1,4 +1,4 @@
-package org.studyeasy.SpringRestdemo.payload.auth.albumPayload;
+package org.studyeasy.SpringRestdemo.payload.AlbumPayload;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;

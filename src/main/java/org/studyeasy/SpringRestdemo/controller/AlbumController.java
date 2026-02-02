@@ -38,11 +38,11 @@ import org.springframework.web.multipart.MultipartFile;
 import org.studyeasy.SpringRestdemo.model.Account;
 import org.studyeasy.SpringRestdemo.model.Album;
 import org.studyeasy.SpringRestdemo.model.Photo;
-import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.AlbumPayloadDTO;
-import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.AlbumViewDTO;
-import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.PhotoDTO;
-import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.PhotoPayloadDTO;
-import org.studyeasy.SpringRestdemo.payload.auth.albumPayload.PhotoViewDTO;
+import org.studyeasy.SpringRestdemo.payload.AlbumPayload.AlbumPayloadDTO;
+import org.studyeasy.SpringRestdemo.payload.AlbumPayload.AlbumViewDTO;
+import org.studyeasy.SpringRestdemo.payload.AlbumPayload.PhotoDTO;
+import org.studyeasy.SpringRestdemo.payload.AlbumPayload.PhotoPayloadDTO;
+import org.studyeasy.SpringRestdemo.payload.AlbumPayload.PhotoViewDTO;
 import org.studyeasy.SpringRestdemo.service.AccountService;
 import org.studyeasy.SpringRestdemo.service.AlbumService;
 import org.studyeasy.SpringRestdemo.service.PhotoService;
@@ -394,6 +394,8 @@ public class AlbumController {
         }
     }
 
+    @GetMapping("albums/{album_id}/photos/{photo_id}/download-photo")
+    @SecurityRequirement(name = "manish-chaudhari")
     public ResponseEntity<?> downloadPhoto(@PathVariable("album_id") long album_id,
             @PathVariable("photo_id") long photo_id, Authentication authentication) {
 

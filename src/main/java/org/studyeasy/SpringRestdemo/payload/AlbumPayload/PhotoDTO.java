@@ -1,4 +1,4 @@
-package org.studyeasy.SpringRestdemo.payload.auth.albumPayload;
+package org.studyeasy.SpringRestdemo.payload.AlbumPayload;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,13 +11,17 @@ import lombok.ToString;
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
-public class PhotoViewDTO {
+public class PhotoDTO {
 
+    
     private long id;
 
     private String name;
 
     private String desciption;
 
-    
+    private String fileName;
+
+    private String download_link;
+
 }
