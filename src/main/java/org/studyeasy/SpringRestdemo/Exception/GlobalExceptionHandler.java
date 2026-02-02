@@ -10,6 +10,7 @@ import org.studyeasy.SpringRestdemo.payload.ExceptionPayload.ErrorResponseDTO;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

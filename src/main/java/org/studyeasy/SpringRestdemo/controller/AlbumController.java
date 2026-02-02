@@ -130,7 +130,7 @@ public class AlbumController {
     @ApiResponse(responseCode = "403", description = "Token Error")
     @Operation(summary = "List Album by Album id")
     @SecurityRequirement(name = "manish-chaudhari")
-    public ResponseEntity<AlbumViewDTO> albums_bu_id(@PathVariable long album_id,Authentication authentication){
+    public ResponseEntity<AlbumViewDTO> albums_by_id(@PathVariable long album_id,Authentication authentication){
         String email = authentication.getName();
         Optional<Account> optionalAccount = accountService.findByEmailAccount(email);
         Account account = optionalAccount.get();
